@@ -178,7 +178,8 @@ func (bcell *BaseCell) RegitserPlayerPBMessage(player interface{}) {
 			continue
 		}
 		index := i
-		bcell.msgHandler[method.Type.In(1).Elem()] = func(ev cellnetEx.Event) {
+		msg := reflect.New(method.Type.In(1).Elem()).Interface()
+		bcell.msgHandler[reflect.TypeOf(msg)] = func(ev cellnetEx.Event) {
 			if ev.Session().GetUserData() == nil {
 				log.Warnln("OnPlayerMessage not login close session", ev.Session().ID())
 				ev.Session().Close()
