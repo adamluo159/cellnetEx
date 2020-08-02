@@ -2,6 +2,11 @@ syntax = "proto3";
 
 package test;
 
+message CMD {
+    ACK = 0;
+}
+
+//ACK
 message ContentACK
 {
     string Msg = 1;

@@ -145,7 +145,7 @@ func (bcell *BaseCell) Stop() {
 }
 
 //RegitserMessage 注册默认消息响应
-func RegitserMessage(msg interface{}, f func(ev cellnetEx.Event)) {
+func RegisterMessage(msg interface{}, f func(ev cellnetEx.Event)) {
 	if DefaultCell == nil {
 		panic("RegitserModuleMsg Default nil")
 	}
