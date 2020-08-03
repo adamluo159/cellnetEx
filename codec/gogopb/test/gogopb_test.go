@@ -1,10 +1,11 @@
 package test
 
 import (
-	"github.com/adamluo159/cellnetEx/codec"
-	_ "github.com/adamluo159/cellnetEx/codec/gogopb"
 	"reflect"
 	"testing"
+
+	"github.com/adamluo159/cellnetEx/codec"
+	_ "github.com/adamluo159/cellnetEx/codec/gogopb"
 )
 
 func TestGogopbCodec_Codec(t *testing.T) {
@@ -13,7 +14,7 @@ func TestGogopbCodec_Codec(t *testing.T) {
 	a.Value = 67994
 	a.Msg = "hello"
 
-	data, meta, err := codec.EncodeMessage(&a)
+	data, meta, err := codec.EncodeMessage(&a, nil)
 	if err != nil {
 		t.Log(err)
 		t.FailNow()
