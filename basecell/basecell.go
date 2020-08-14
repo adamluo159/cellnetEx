@@ -15,7 +15,7 @@ var log *golog.Logger = nil //= golog.New("websocket_bceller")
 var DefaultCell *BaseCell = nil
 
 //IModule 模块接口
-type iModule interface {
+type IModule interface {
 	Init()
 	Name() string
 	OnDestory()
@@ -32,7 +32,7 @@ type BaseCell struct {
 	MsgQueueLen int
 
 	//bcellName    string //服务名字
-	modules    []iModule
+	modules    []IModule
 	msgHandler map[reflect.Type]func(ev cellnetEx.Event)
 	queue      cellnetEx.EventQueue
 	queues     []cellnetEx.EventQueue
@@ -106,7 +106,7 @@ func (bcell *BaseCell) msgQueue() func(ev cellnetEx.Event) {
 }
 
 //Start 服务开始
-func (bcell *BaseCell) Start(mods ...iModule) {
+func (bcell *BaseCell) Start(mods ...IModule) {
 	tmpNames := []string{}
 	for _, m := range mods {
 		for _, name := range tmpNames {
