@@ -24,6 +24,7 @@ type iModule interface {
 //iUserData 用户数据接口
 type iUserData interface {
 	QID() int
+	UID() string
 }
 
 //BaseCell 基础服务
@@ -144,7 +145,7 @@ func (bcell *BaseCell) Stop() {
 	}
 }
 
-//RegitserMessage 注册默认消息响应
+//RegisterMessage 注册默认消息响应
 func RegisterMessage(msg interface{}, f func(ev cellnetEx.Event)) {
 	if DefaultCell == nil {
 		panic("RegitserModuleMsg Default nil")
@@ -168,6 +169,15 @@ func RegitserPlayerPBMessage(player interface{}) {
 //RegitserPlayerPBMessage 注册玩家处理的消息
 func (bcell *BaseCell) RegitserPlayerPBMessage(player interface{}) {
 	typeInfo := reflect.TypeOf(player)
+	if typeInfo.Kind() != reflect.Ptr {
+		panic("player must ptr")
+	}
+	if _, exsit := typeInfo.MethodByName("QID"); !exsit {
+		panic("player must have QID Method")
+	}
+	if _, exsit := typeInfo.MethodByName("UID"); !exsit {
+		panic("player must have UID Method")
+	}
 	for i := 0; i < typeInfo.NumMethod(); i++ {
 		method := typeInfo.Method(i)
 		if method.Type.NumIn() != 2 {
@@ -187,6 +197,50 @@ func (bcell *BaseCell) RegitserPlayerPBMessage(player interface{}) {
 			}
 			in := []reflect.Value{reflect.ValueOf(ev.Message())}
 			reflect.ValueOf(ev.Session().GetUserData()).Method(index).Call(in)
+		}
+	}
+}
+
+//RegisterObjMessge 注册玩家相关的模块消息响应
+func RegisterObjMessge(player interface{}) {
+	if DefaultCell == nil {
+		panic("RegitserModuleMsg Default nil")
+	}
+	DefaultCell.RegisterObjMessge(player)
+}
+
+//RegisterObjMessge 注册玩家下对象处理的消息
+func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
+	typeInfo := reflect.TypeOf(obj)
+	if typeInfo.Kind() != reflect.Ptr {
+		panic("obj must ptr")
+	}
+	for i := 0; i < typeInfo.NumMethod(); i++ {
+		method := typeInfo.Method(i)
+		if method.Type.NumIn() != 3 {
+			continue
+		}
+
+		if method.Type.In(1).Kind() != reflect.String ||
+			cellnetEx.MessageMetaByType(method.Type.In(2)) == nil {
+			continue
+		}
+
+		index := i
+		msg := reflect.New(method.Type.In(2).Elem()).Interface()
+		bcell.msgHandler[reflect.TypeOf(msg)] = func(ev cellnetEx.Event) {
+			userData := ev.Session().GetUserData()
+			if userData == nil {
+				log.Warnln("OnPlayerMessage Obj not login close session", ev.Session().ID())
+				ev.Session().Close()
+				return
+			}
+			in := []reflect.Value{
+				reflect.ValueOf(userData.(iUserData).UID()),
+				reflect.ValueOf(ev.Message()),
+			}
+			obj := reflect.ValueOf(userData).Elem().FieldByName(typeInfo.Elem().Name())
+			obj.Method(index).Call(in)
 		}
 	}
 }
