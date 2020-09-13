@@ -76,3 +76,18 @@ func PostAsync(qid int, f func() interface{}, cb func(ret interface{})) {
 func (bcell *BaseCell) PostAsync(qid int, f func() interface{}, cb func(ret interface{})) {
 	bcell.getQueue(qid).Post(func() { cb(f()) })
 }
+
+//AfterFunc 定时调用
+func AfterFunc(qid int, d time.Duration, f func()) *time.Timer {
+	if DefaultCell != nil {
+		return DefaultCell.AfterFunc(qid, d, f)
+	}
+	return time.AfterFunc(d, f) //给go test环境用一下
+}
+
+//AfterFunc 定时调用
+func (bcell *BaseCell) AfterFunc(qid int, d time.Duration, f func()) *time.Timer {
+	return time.AfterFunc(d, func() {
+		bcell.getQueue(qid).Post(f)
+	})
+}

@@ -22,7 +22,7 @@ type IModule interface {
 }
 
 //iUserData 用户数据接口
-type iUserData interface {
+type IUserData interface {
 	QID() int
 	UID() string
 }
@@ -83,7 +83,7 @@ func (bcell *BaseCell) msgQueue() func(ev cellnetEx.Event) {
 			if udata == nil {
 				queueID = rand.Intn(bcell.MsgQueueLen)
 			} else {
-				queueID = udata.(iUserData).QID()
+				queueID = udata.(IUserData).QID()
 			}
 			bcell.queues[queueID].Post(func() {
 				f, ok := bcell.msgHandler[reflect.TypeOf(ev.Message())]
@@ -217,17 +217,16 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 	}
 	for i := 0; i < typeInfo.NumMethod(); i++ {
 		method := typeInfo.Method(i)
-		if method.Type.NumIn() != 3 {
+		if method.Type.NumIn() != 2 {
 			continue
 		}
 
-		if method.Type.In(1).Kind() != reflect.String ||
-			cellnetEx.MessageMetaByType(method.Type.In(2)) == nil {
+		if cellnetEx.MessageMetaByType(method.Type.In(1)) == nil {
 			continue
 		}
 
 		index := i
-		msg := reflect.New(method.Type.In(2).Elem()).Interface()
+		msg := reflect.New(method.Type.In(1).Elem()).Interface()
 		bcell.msgHandler[reflect.TypeOf(msg)] = func(ev cellnetEx.Event) {
 			userData := ev.Session().GetUserData()
 			if userData == nil {
@@ -236,7 +235,6 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 				return
 			}
 			in := []reflect.Value{
-				reflect.ValueOf(userData.(iUserData).UID()),
 				reflect.ValueOf(ev.Message()),
 			}
 			obj := reflect.ValueOf(userData).Elem().FieldByName(typeInfo.Elem().Name())

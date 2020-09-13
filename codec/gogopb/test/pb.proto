@@ -3,12 +3,13 @@ syntax = "proto3";
 package test;
 
 message CMD {
-    ACK = 0;
+  ACK = 0;
+  HELO = 1;
 }
 
-//ACK
-message ContentACK
-{
-    string Msg = 1;
-    int32 Value = 2;
+// HELO
+// ACK
+message ContentACK {
+  string Msg = 1;
+  int32 Value = 2;
 }

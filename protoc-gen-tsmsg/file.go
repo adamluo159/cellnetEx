@@ -20,6 +20,12 @@ export default class ProtoUtil {
 				{{.CMDID}}:pb.{{.Name}}, //pb.CMD.{{.MsgID}}
 				{{end}}{{end}}{{end}}
 	}
+	public static readonly Cmd2Name: { [k:number]: string } = {
+		{{range .Protos}}
+		{{range .Messages}}{{if .CheckGen}}
+		{{.CMDID}}:"{{.MsgID}}", //pb.CMD.{{.Name}}
+		{{end}}{{end}}{{end}}
+	}
 
     public static encode(cmd: number, msgObj: any): Uint8Array {
 	   let clazz: any = this.CmdClassMap[cmd];

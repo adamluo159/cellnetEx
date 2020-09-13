@@ -5,7 +5,9 @@ import (
 
 	"github.com/adamluo159/cellnetEx"
 	"github.com/adamluo159/cellnetEx/peer"
+	_ "github.com/adamluo159/cellnetEx/peer/gorillaws"
 	"github.com/adamluo159/cellnetEx/proc"
+	_ "github.com/adamluo159/cellnetEx/proc/gorillaws"
 )
 
 //NewWsServer 创建ws服务器
