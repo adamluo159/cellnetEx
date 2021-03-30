@@ -32,12 +32,12 @@ type BaseCell struct {
 	MsgQueueLen int
 
 	//bcellName    string //服务名字
-	modules    []IModule
-	msgHandler map[reflect.Type]func(ev cellnetEx.Event)
-	queue      cellnetEx.EventQueue
-	queues     []cellnetEx.EventQueue
-
-	peer cellnetEx.GenericPeer
+	modules     []IModule
+	msgHandler  map[reflect.Type]func(ev cellnetEx.Event)
+	queue       cellnetEx.EventQueue
+	queues      []cellnetEx.EventQueue
+	peer        cellnetEx.GenericPeer
+	authCmdType reflect.Type //认证消息在客户端发的第一个消息
 }
 
 //SetLog 设置日志
@@ -75,18 +75,36 @@ func New(msgQueLen int) *BaseCell {
 	return bcell
 }
 
+//初始化认证信息 应该是客户端发的第一个消息
+func InitAuthMessage(authMessage interface{}) {
+	if DefaultCell == nil {
+		panic("RegitserModuleMsg Default nil")
+	}
+	DefaultCell.InitAuthMessage(authMessage)
+}
+
+//初始化认证信息 应该是客户端发的第一个消息
+func (bcell *BaseCell) InitAuthMessage(authMessage interface{}) {
+	bcell.authCmdType = reflect.TypeOf(authMessage)
+}
+
 func (bcell *BaseCell) msgQueue() func(ev cellnetEx.Event) {
 	return func(ev cellnetEx.Event) {
+		cmdType := reflect.TypeOf(ev.Message())
 		if bcell.MsgQueueLen > 0 {
 			queueID := 0
 			udata := ev.Session().GetUserData()
 			if udata == nil {
+				if cmdType != bcell.authCmdType {
+					log.Warnf("frist Client Message should %s  current:%s", cmdType.String(), bcell.authCmdType.String())
+					return
+				}
 				queueID = rand.Intn(bcell.MsgQueueLen)
 			} else {
 				queueID = udata.(IUserData).QID()
 			}
 			bcell.queues[queueID].Post(func() {
-				f, ok := bcell.msgHandler[reflect.TypeOf(ev.Message())]
+				f, ok := bcell.msgHandler[cmdType]
 				if ok {
 					f(ev)
 				} else {
@@ -117,6 +135,10 @@ func (bcell *BaseCell) Start(mods ...IModule) {
 		m.Init()
 		tmpNames = append(tmpNames, m.Name())
 	}
+	if bcell.authCmdType == nil {
+		panic("InitAuthMessage must set")
+	}
+
 	bcell.modules = mods
 	// 开始侦听
 	bcell.peer.Start()
@@ -159,7 +181,7 @@ func (bcell *BaseCell) RegisterMessage(msg interface{}, f func(ev cellnetEx.Even
 }
 
 //RegitserPlayerPBMessage 注册默认消息响应
-func RegitserPlayerPBMessage(player interface{}) {
+func RegitserPlayerPBMessage(player interface{}, authCmd int) {
 	if DefaultCell == nil {
 		panic("RegitserModuleMsg Default nil")
 	}
@@ -178,6 +200,7 @@ func (bcell *BaseCell) RegitserPlayerPBMessage(player interface{}) {
 	if _, exsit := typeInfo.MethodByName("UID"); !exsit {
 		panic("player must have UID Method")
 	}
+
 	for i := 0; i < typeInfo.NumMethod(); i++ {
 		method := typeInfo.Method(i)
 		if method.Type.NumIn() != 2 {
