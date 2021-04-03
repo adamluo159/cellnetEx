@@ -181,7 +181,7 @@ func (bcell *BaseCell) RegisterMessage(msg interface{}, f func(ev cellnetEx.Even
 }
 
 //RegitserPlayerPBMessage 注册默认消息响应
-func RegitserPlayerPBMessage(player interface{}, authCmd int) {
+func RegitserPlayerPBMessage(player interface{}) {
 	if DefaultCell == nil {
 		panic("RegitserModuleMsg Default nil")
 	}
