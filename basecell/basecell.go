@@ -254,7 +254,7 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 				log.Errorf("RegisterObjMessge player field:%s not exsit drop message:%s", typeInfo.Elem().Name(), msgType.String())
 				return
 			}
-			if !obj.IsNil() {
+			if obj.IsNil() {
 				log.Errorf("RegisterObjMessge player field:%s nil drop message:%s", typeInfo.Elem().Name(), msgType.String())
 				return
 			}
