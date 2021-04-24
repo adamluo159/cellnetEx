@@ -30,12 +30,10 @@ type IUserData interface {
 //BaseCell 基础服务
 type BaseCell struct {
 	MsgQueueLen int
-
-	//bcellName    string //服务名字
 	modules     []IModule
 	msgHandler  map[reflect.Type]func(ev cellnetEx.Event)
-	queue       cellnetEx.EventQueue
-	queues      []cellnetEx.EventQueue
+	mainQueue   cellnetEx.EventQueue
+	msgQueues   []cellnetEx.EventQueue
 	peer        cellnetEx.GenericPeer
 	authCmdType reflect.Type //认证消息在客户端发的第一个消息
 }
@@ -57,16 +55,16 @@ func New(msgQueLen int) *BaseCell {
 
 	bcell := &BaseCell{
 		MsgQueueLen: msgQueLen,
-		queue:       cellnetEx.NewEventQueue(),
-		queues:      make([]cellnetEx.EventQueue, 0),
+		mainQueue:   cellnetEx.NewEventQueue(),
+		msgQueues:   make([]cellnetEx.EventQueue, 0),
 		msgHandler:  make(map[reflect.Type]func(ev cellnetEx.Event)),
 	}
 
-	bcell.queue.EnableCapturePanic(true)
+	bcell.mainQueue.EnableCapturePanic(true)
 	for i := 0; i < msgQueLen; i++ {
 		q := cellnetEx.NewEventQueue()
 		q.EnableCapturePanic(true)
-		bcell.queues = append(bcell.queues, q)
+		bcell.msgQueues = append(bcell.msgQueues, q)
 	}
 
 	if DefaultCell == nil {
@@ -91,35 +89,25 @@ func (bcell *BaseCell) InitAuthMessage(authMessage interface{}) {
 func (bcell *BaseCell) msgQueue() func(ev cellnetEx.Event) {
 	return func(ev cellnetEx.Event) {
 		cmdType := reflect.TypeOf(ev.Message())
-		if bcell.MsgQueueLen > 0 {
-			queueID := 0
-			udata := ev.Session().GetUserData()
-			if udata == nil {
-				if cmdType != bcell.authCmdType {
-					log.Warnf("frist Client Message should %s  current:%s", cmdType.String(), bcell.authCmdType.String())
-					return
-				}
-				queueID = rand.Intn(bcell.MsgQueueLen)
-			} else {
-				queueID = udata.(IUserData).QID()
+		qid := 0
+		udata := ev.Session().GetUserData()
+		if udata == nil {
+			if cmdType != bcell.authCmdType {
+				log.Warnf("frist Client Message should %s  current:%s", cmdType.String(), bcell.authCmdType.String())
+				return
 			}
-			bcell.queues[queueID].Post(func() {
-				f, ok := bcell.msgHandler[cmdType]
-				if ok {
-					f(ev)
-				} else {
-					log.Errorln("onMessage not found message handler ", ev.Message())
-				}
-			})
-			return
-		}
-
-		f, ok := bcell.msgHandler[reflect.TypeOf(ev.Message())]
-		if ok {
-			f(ev)
+			qid = rand.Intn(bcell.MsgQueueLen)
 		} else {
-			log.Errorln("onMessage not found message handler ", ev.Message())
+			qid = udata.(IUserData).QID()
 		}
+		bcell.msgQueues[qid].Post(func() {
+			f, ok := bcell.msgHandler[cmdType]
+			if ok {
+				f(ev)
+			} else {
+				log.Errorln("onMessage not found message handler ", ev.Message())
+			}
+		})
 	}
 }
 
@@ -144,9 +132,9 @@ func (bcell *BaseCell) Start(mods ...IModule) {
 	bcell.peer.Start()
 
 	// 事件队列开始循环
-	bcell.queue.StartLoop()
+	bcell.mainQueue.StartLoop()
 
-	for _, v := range bcell.queues {
+	for _, v := range bcell.msgQueues {
 		v.StartLoop()
 	}
 }
@@ -154,10 +142,10 @@ func (bcell *BaseCell) Start(mods ...IModule) {
 //Stop 服务停止
 func (bcell *BaseCell) Stop() {
 	bcell.peer.Stop()
-	bcell.queue.StopLoop()
-	bcell.queue.Wait()
+	bcell.mainQueue.StopLoop()
+	bcell.mainQueue.Wait()
 
-	for _, v := range bcell.queues {
+	for _, v := range bcell.msgQueues {
 		v.StopLoop()
 		v.Wait()
 	}
@@ -249,11 +237,12 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 		}
 
 		index := i
-		msg := reflect.New(method.Type.In(1).Elem()).Interface()
+		msgType := method.Type.In(1).Elem()
+		msg := reflect.New(msgType).Interface()
 		bcell.msgHandler[reflect.TypeOf(msg)] = func(ev cellnetEx.Event) {
 			userData := ev.Session().GetUserData()
 			if userData == nil {
-				log.Warnln("OnPlayerMessage Obj not login close session", ev.Session().ID())
+				log.Warnln("RegisterObjMessge Obj not login close session", ev.Session().ID())
 				ev.Session().Close()
 				return
 			}
@@ -261,6 +250,10 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 				reflect.ValueOf(ev.Message()),
 			}
 			obj := reflect.ValueOf(userData).Elem().FieldByName(typeInfo.Elem().Name())
+			if obj.IsNil() {
+				log.Errorln("RegisterObjMessge player field:%s not exsit drop message:%s", typeInfo.Elem().Name(), msgType.String())
+				return
+			}
 			obj.Method(index).Call(in)
 		}
 	}
