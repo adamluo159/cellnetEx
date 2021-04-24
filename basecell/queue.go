@@ -22,19 +22,15 @@ func (bcell *BaseCell) GetQidByKey(key string) int {
 }
 
 func (bcell *BaseCell) getQueue(qid int) cellnetEx.EventQueue {
-	q := bcell.queue
-	if bcell.MsgQueueLen > 0 {
-		if qid > bcell.MsgQueueLen-1 {
-			log.Errorln("qid < 0 ")
-			return nil
-		}
-		if qid < 0 {
-			log.Errorf("qid < 0")
-			return nil
-		}
-		q = bcell.queues[qid]
+	if qid > bcell.MsgQueueLen-1 {
+		log.Errorln("qid < 0 ")
+		return nil
 	}
-	return q
+	if qid < 0 {
+		log.Errorf("qid < 0")
+		return nil
+	}
+	return bcell.msgQueues[qid]
 }
 
 //Post 事件推送
