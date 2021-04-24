@@ -249,7 +249,7 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 			in := []reflect.Value{
 				reflect.ValueOf(ev.Message()),
 			}
-			obj := reflect.ValueOf(userData).Elem().FieldByName("aaaaa")
+			obj := reflect.ValueOf(userData).Elem().FieldByName(typeInfo.Elem().Name())
 			if !obj.IsValid() {
 				log.Errorf("RegisterObjMessge player field:%s not exsit drop message:%s", typeInfo.Elem().Name(), msgType.String())
 				return
