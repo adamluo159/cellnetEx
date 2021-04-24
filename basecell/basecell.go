@@ -100,13 +100,13 @@ func (bcell *BaseCell) msgQueue() func(ev cellnetEx.Event) {
 		} else {
 			qid = udata.(IUserData).QID()
 		}
+		f, ok := bcell.msgHandler[cmdType]
+		if !ok {
+			log.Errorln("onMessage not found message handler ", ev.Message())
+			return
+		}
 		bcell.msgQueues[qid].Post(func() {
-			f, ok := bcell.msgHandler[cmdType]
-			if ok {
-				f(ev)
-			} else {
-				log.Errorln("onMessage not found message handler ", ev.Message())
-			}
+			f(ev)
 		})
 	}
 }
@@ -249,12 +249,12 @@ func (bcell *BaseCell) RegisterObjMessge(obj interface{}) {
 			in := []reflect.Value{
 				reflect.ValueOf(ev.Message()),
 			}
-			obj := reflect.ValueOf(userData).Elem().FieldByName(typeInfo.Elem().Name())
-			if obj.IsNil() {
-				log.Errorln("RegisterObjMessge player field:%s not exsit drop message:%s", typeInfo.Elem().Name(), msgType.String())
+			obj := reflect.ValueOf(userData).Elem().FieldByName("aaaaa")
+			if !obj.IsValid() {
+				log.Errorf("RegisterObjMessge player field:%s not exsit drop message:%s", typeInfo.Elem().Name(), msgType.String())
 				return
 			}
-			obj.Method(index).Call(in)
+			obj.Elem().Method(index).Call(in)
 		}
 	}
 }
