@@ -23,7 +23,7 @@ func (bcell *BaseCell) GetQidByKey(key string) int {
 
 func (bcell *BaseCell) getQueue(qid int) cellnetEx.EventQueue {
 	if qid > bcell.MsgQueueLen-1 {
-		log.Errorln("qid < 0 ")
+		log.Errorln("qid > msgQueueLen ")
 		return nil
 	}
 	if qid < 0 {

@@ -10,7 +10,8 @@ import (
 	"github.com/adamluo159/cellnetEx"
 )
 
-var log *golog.Logger = nil //= golog.New("websocket_bceller")
+var log *golog.Logger = golog.New("basecell")
+
 //DefaultCell 默认服务
 var DefaultCell *BaseCell = nil
 
@@ -36,11 +37,6 @@ type BaseCell struct {
 	msgQueues   []cellnetEx.EventQueue
 	peer        cellnetEx.GenericPeer
 	authCmdType reflect.Type //认证消息在客户端发的第一个消息
-}
-
-//SetLog 设置日志
-func SetLog(l *golog.Logger) {
-	log = l
 }
 
 //New 创建新服务
