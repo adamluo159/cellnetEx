@@ -35,6 +35,11 @@ func (bcell *BaseCell) getQueue(qid int) cellnetEx.EventQueue {
 
 //Post 事件推送
 func Post(qid int, f func()) {
+	if DefaultCell == nil {
+		f()
+		return
+	}
+
 	DefaultCell.Post(qid, f)
 }
 
@@ -45,6 +50,9 @@ func (bcell *BaseCell) Post(qid int, f func()) {
 
 //PostSync 投递
 func PostSync(qid int, f func() interface{}) interface{} {
+	if DefaultCell == nil {
+		return f()
+	}
 	return DefaultCell.PostSync(qid, f)
 }
 
@@ -65,6 +73,10 @@ func (bcell *BaseCell) PostSync(qid int, f func() interface{}) interface{} {
 
 //PostAsync 异步调用
 func PostAsync(qid int, f func() interface{}, cb func(ret interface{})) {
+	if DefaultCell == nil {
+		cb(f())
+		return
+	}
 	DefaultCell.PostAsync(qid, f, cb)
 }
 
